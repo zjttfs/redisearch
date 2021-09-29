@@ -1,11 +1,11 @@
 {
-  "name": "front/redisearch",
+  "name": "zjttfs/zpb-redisearch",
   "description": "CMS/Framework agnostic RediSearch client",
   "keywords": ["redis", "redisearch"],
-  "homepage": "http://github.com/front/redisearch",
+  "homepage": "https://github.com/zjttfs/zpb-redisearc",
   "license": "MIT",
   "support": {
-      "issues": "https://github.com/front/redisearch/issues"
+      "issues": "https://github.com/zjttfs/zpb-redisearc/issues"
   },
   "authors": [
       {
