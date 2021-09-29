@@ -50,6 +50,7 @@ class PredisAdapter extends AbstractRedisRawClient {
   
   public function rawCommand(string $command, array $arguments) {
     $preparedArguments = $this->prepareRawCommandArguments($command, $arguments);
+
     $rawResult = $this->redis->executeRaw($preparedArguments);
     return $this->normalizeRawCommandResult($rawResult);
   }

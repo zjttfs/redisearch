@@ -26,7 +26,7 @@ class SearchResult {
     return $this->documents;
   }
 
-  public static function searchResult( $rawRediSearchResult, $documentsAsArray, $withIds = true, $withScores = false, $withPayloads = false ) {
+  public static function searchResult( $rawRediSearchResult, $documentsAsArray, $withIds = true, $withScores = false, $withPayloads = false ,$noContent=false) {
     if ( !$rawRediSearchResult ) {
       return new static();
     }
@@ -46,33 +46,40 @@ class SearchResult {
     $docWidth += $withIds ? 1 : 0;
     $docWidth += $withScores ? 1 : 0;
     $docWidth += $withPayloads ? 1 : 0;
+    $docWidth -= $noContent ? 1 : 0;
+
     if ( $results_count % $docWidth != 0 ) {
       throw new \UnexpectedValueException('Malformed redisearch result');
     }
 
-    // get data from redisearch response in friendlier format
-    $rows = [];
-    for ($i = 0; $i < $results_count; $i += $docWidth) {
-      $rows[] = array_slice($rawRediSearchResult, $i, $docWidth);
-    }
-
-    $documents = [];
-    foreach ($rows as $row_data) {
-      $document = [];
-      $document['id'] = $withIds ? array_shift($row_data) : NULL;
-      $document['score'] = $withScores ? array_shift($row_data) : NULL;
-      $document['payload'] = $withPayloads ? array_shift($row_data) : NULL;
-
-      // Add fields to document
-      if ( count($row_data) > 0 && is_array($row_data[0]) ) {
-        $fields = $row_data[0];
-        for ($i = 0; $i < count($fields); $i += 2) {
-          $document[$fields[$i]] = $fields[$i + 1];
+    if($noContent && $docWidth==1){
+        $documents=$rawRediSearchResult;
+    }else{
+        // get data from redisearch response in friendlier format
+        $rows = [];
+        for ($i = 0; $i < $results_count; $i += $docWidth) {
+            $rows[] = array_slice($rawRediSearchResult, $i, $docWidth);
         }
-      }
 
-      $documents[] = $document;
+        $documents = [];
+        foreach ($rows as $row_data) {
+            $document = [];
+            $document['id'] = $withIds ? array_shift($row_data) : NULL;
+            $document['score'] = $withScores ? array_shift($row_data) : NULL;
+            $document['payload'] = $withPayloads ? array_shift($row_data) : NULL;
+
+            // Add fields to document
+            if ( count($row_data) > 0 && is_array($row_data[0]) ) {
+                $fields = $row_data[0];
+                for ($i = 0; $i < count($fields); $i += 2) {
+                    $document[$fields[$i]] = $fields[$i + 1];
+                }
+            }
+
+            $documents[] = $document;
+        }
     }
+
 
     // Transform result into object if needed
     if (!$documentsAsArray) {

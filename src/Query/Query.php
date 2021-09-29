@@ -23,6 +23,7 @@ class Query {
   protected $inFields = '';
   protected $inKeys = '';
   protected $numericFilters = [];
+  protected $tagsFilters = [];
   protected $geoFilters = [];
   protected $sortBy = '';
   protected $scorer = '';
@@ -253,9 +254,40 @@ class Query {
    *
    * @return $this
    */
-  public function numericFilter( string $fieldName, int $min, int $max = null ) {
-    $max = $max ?? '+inf';
-    $this->numericFilters[] = "@$fieldName:[$min $max]";
+  public function numericFilter( $fieldName, int $min = null , int $max = null ) {
+    if(is_string($fieldName)) {
+      $max = $max ?? '+inf';
+      $this->numericFilters[] = "@$fieldName:[$min $max]";
+    }else{
+      $str='';
+      foreach($fieldName as $line){
+         $max=$line[2]??'+inf';
+         $str.='@'.$line[0].':['.$line[1].' '.$max.']|';
+      }
+      $str=substr($str,0,-1);
+      $this->numericFilters[] = $str;
+    }
+    
+    return $this;
+  }
+
+  /**
+   * @description:标签筛选,待测试 
+   * @param {string} $fieldName
+   * @param {array} $tags
+   * @param {bool} $both
+   * @return $this
+   */  
+  public function tagsFilter(string $fieldName,array $tags,bool $both=false){
+    if($both){
+      foreach($tags as $value){
+        $this->tagsFilters[] = "@{$fieldName}:{{$value}}";
+      }
+    }else{
+      $filterStr=implode('|',$tags);
+      $this->tagsFilters[] = "@{$fieldName}:{{$filterStr}}";
+    }
+    
     return $this;
   }
 
@@ -457,8 +489,11 @@ class Query {
     if ($query instanceof QueryBuilder) {
       $query = $query->buildRedisearchQuery();
     }
-    $queryParts = array_merge( (array) $query, $this->numericFilters, $this->geoFilters );
+
+    $queryParts = array_merge( (array) $query, $this->numericFilters, $this->geoFilters , $this->tagsFilters );
+    if($queryParts[0]=='*' && isset($queryParts[1])) unset($queryParts[0]);
     $queryWithFilters = implode( ' ', $queryParts );
+
     return array_filter(
         array_merge(
             trim($queryWithFilters) === '' ? array( $this->indexName ) : array( $this->indexName, $queryWithFilters ),
@@ -556,7 +591,8 @@ class Query {
       $documentsAsArray,
       true,
       $this->withScores !== '',
-      $this->withPayloads !== ''
+      $this->withPayloads !== '',
+       $this->noContent!==''
     );
   }
 
